@@ -10,7 +10,7 @@ AS              = msp430-elf-gcc -mmcu=${CPU} -c
 all:game.elf
 
 #additional rules for files
-game.elf: ${COMMON_OBJECTS} main.o
+game.elf: ${COMMON_OBJECTS} main.o buzzer.o
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $^ -lTimer -lLcd 
 
 load: game.elf
@@ -18,3 +18,6 @@ load: game.elf
 
 clean:
 	rm -f *.o *.elf
+
+buzzer.c: buzzer.h
+main.c: buzzer.h

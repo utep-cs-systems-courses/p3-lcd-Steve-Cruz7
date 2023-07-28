@@ -2,6 +2,7 @@
 #include <libTimer.h>
 #include "lcdutils.h"
 #include "lcddraw.h"
+#include "buzzer.h"
 
 typedef struct {
   short col, row;
@@ -9,23 +10,52 @@ typedef struct {
 
 #define LED BIT6
 
-#define SWITCHES 15
+#define TSW1 BIT0
+#define TSW2 BIT1
+#define TSW3 BIT2
+#define TSW4 BIT3
+
+#define SWITCHES (TSW1 | TSW2 | TSW3 | TSW4)
 
 short col = 0;
 short pastRow = 0;
 short currentRow = 0;
 
-short controlCol = 64;
+short controlCol = screenWidth/2;
 short controlRow = 0;
 
 short interrupts = 1;
 short drawBlock = 1;
 
+//Button pressing related states
+short correct = 0;
+short playTheme = 0;
+
 void draw(){
-  fillRectangle(controlCol , controlRow + pastRow, 10, 50, BLACK);
-  fillRectangle(controlCol, controlRow + currentRow, 10, 50, COLOR_BLUE);
+  and_sr(~8);    //Masking interrupts
+  fillRectangle(controlCol , controlRow + pastRow, 10, 30, BLACK);
+  fillRectangle(controlCol, controlRow + currentRow, 10, 30, COLOR_BLUE);
   pastRow = currentRow;
+  or_sr(8);
 }
+
+void correctPress(){
+  if(correct == 1)
+    play4Csharp();
+  if(correct == 2)
+    play4D();
+  if(correct == 3)
+    play4Fsharp();
+  if(correct == 4)
+    play4G();
+  if(correct == 5){
+    play4A();
+  }
+}
+
+void incorrectPress(){
+  buzzer_set_period(500);
+}    
 
 void switch_init(){
   P2REN |= SWITCHES;
@@ -34,15 +64,36 @@ void switch_init(){
   P2DIR &= ~SWITCHES;
 }
 
- //Implement WDT interrupt so you can make the shape move down every second
- //Test collisions at certain coordinates maybe with a line or just edge of screen
- //Implement buttons that can interact with program during collisions
+ //Add button to increment size
+ //Add button to increase speed
+ //Add button to change color
 void __interrupt_vec(WDT_VECTOR) WDT(){
-  if((interrupts++) == 250){
+  if((interrupts++) == 250){    //every second do this
     interrupts = 1;
-    currentRow+=10;
-    // draw();
+    currentRow+=30;
+    //draw();
     drawBlock = 1;
+    and_sr(~16);                //turning CPU back on to draw
+  }
+}
+
+void __interrupt_vec(PORT2_VECTOR) Port_2(){
+  if(P2IFG & TSW1){
+    P2IFG &= ~TSW1;               //If they press it when its in the region, correct+1
+    if ((controlRow+currentRow) < 100 && 100 < ((controlRow + currentRow) + 30 )){
+      correct++;
+      current Row = 0;   //reset the shape's position
+      //redrawline = 1
+      correctPress();
+    }
+    else{
+      currentRow = 0;
+      incorrectPress();
+    }
+  }
+  else if(P2IFG & TSW2){           //temporary off button
+    P2IFG &= ~TSW2;
+    buzzer_set_period(0);    
   }
 }
 
@@ -53,20 +104,24 @@ void main(){
   configureClocks();
   lcd_init();
   switch_init();
+  buzzer_init();
 
   enableWDTInterrupts();
-  or_sr(0x8);
+  or_sr(0x8);             //enable GIE
 
   clearScreen(BLACK);
+  for (int i = 0; i < screenWidth; i++){
+    drawPixel(i, 100, WHITE);
+  }
   
   while(1){
     if(drawBlock){
       drawBlock = 0;
-      draw();
-      
+      draw(); 
     }
+    
     P1OUT &= ~LED;
-    or_sr(0x10);
+    or_sr(0x10);   //turning off cpu
     P1OUT |= LED;
-  } 
+  }
 }
