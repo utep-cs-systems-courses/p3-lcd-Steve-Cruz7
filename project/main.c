@@ -64,25 +64,32 @@ void switch_init(){
   P2DIR &= ~SWITCHES;
 }
 
+
  //Add button to increment size
  //Add button to increase speed
  //Add button to change color
-void __interrupt_vec(WDT_VECTOR) WDT(){
-  if((interrupts++) == 250){    //every second do this
-    interrupts = 1;
-    currentRow+=30;
-    //draw();
-    drawBlock = 1;
-    and_sr(~16);                //turning CPU back on to draw
+ //Translate one state machine to assembly
+ //Add decrement of correct on incorrect inputs
+ //Add visible counter of correctness 0-5
+void wdt_c_handler()
+{
+  if((interrupts++) == 250){    //every second do this    
+    interrupts = 1;                                       
+    currentRow+=30;                                      
+    //draw();                                             
+    drawBlock = 1;                                        
+                      
   }
 }
 
-void __interrupt_vec(PORT2_VECTOR) Port_2(){
+
+void __interrupt_vec(PORT2_VECTOR) Port_2()
+{
   if(P2IFG & TSW1){
     P2IFG &= ~TSW1;               //If they press it when its in the region, correct+1
     if ((controlRow+currentRow) < 100 && 100 < ((controlRow + currentRow) + 30 )){
       correct++;
-      current Row = 0;   //reset the shape's position
+      currentRow = 0;   //reset the shape's position
       //redrawline = 1
       correctPress();
     }
@@ -96,6 +103,7 @@ void __interrupt_vec(PORT2_VECTOR) Port_2(){
     buzzer_set_period(0);    
   }
 }
+
 
 void main(){
   P1DIR |= LED;
