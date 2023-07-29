@@ -30,6 +30,7 @@ short controlRow = 0;
 short interrupts = 1;
 short drawBlock = 1;
 short redrawLine = 0;
+short redrawScreen = 0;
 
 //Button pressing related states
 short correct = 0;
@@ -39,13 +40,24 @@ short BLOCK_COLOR = COLOR_BLUE;
 
 void draw(){
   and_sr(~8);    //Masking interrupts
-  fillRectangle(controlCol , controlRow + pastRow, 10, height, BG_COLOR);
-  fillRectangle(controlCol, controlRow + currentRow, 10, height, BLOCK_COLOR);
-  pastRow = currentRow;
+  if (redrawScreen){
+    redrawScreen = 0;
+    clearScreen(BG_COLOR);
+    redrawLine = 1;
+    fillRectangle(controlCol, controlRow + currentRow, 10, height, BLOCK_COLOR);
+    fillRectangle(controlCol, controlRow + currentRow, 10, height, BLOCK_COLOR);
+    pastRow = currentRow;
+    
+  }
+  else{
+    fillRectangle(controlCol , controlRow + pastRow, 10, height, BG_COLOR);
+    fillRectangle(controlCol, controlRow + currentRow, 10, height, BLOCK_COLOR);
+    pastRow = currentRow;
+  }
   or_sr(8);    //Unmasking interrupts
 }
 
-void correctPress(){
+void playSound(){
   if(correct == 1)
     play4Csharp();
   if(correct == 2)
@@ -60,7 +72,7 @@ void correctPress(){
 }
 
 void incorrectPress(){
-  buzzer_set_period(500);
+  buzzer_set_period(2000);
 }    
 
 void switch_init(){
@@ -70,11 +82,8 @@ void switch_init(){
   P2DIR &= ~SWITCHES;
 }
 
-
- //Add button to increment size
  //Translate one state machine to assembly
  //Add visible counter of correctness 0-5
- //Add reset position for box before the end of the screen
  //Add decrement of correct on incorrect inputs and no input
  //Add win screen and FF victory fanfare
 void wdt_c_handler()
@@ -84,6 +93,11 @@ void wdt_c_handler()
     currentRow+=velocity;                                      
     //draw();                                             
     drawBlock = 1;                                                          
+  }
+
+  if (currentRow > lineRow){
+    currentRow = (-1*velocity);
+    redrawScreen = 1;
   }
 }
 
@@ -96,7 +110,7 @@ void __interrupt_vec(PORT2_VECTOR) Port_2()
       correct++;
       currentRow = (-1*velocity);   //reset the shape's position
       redrawLine = 1;
-      correctPress();
+      playSound();
     }
     else{
       currentRow = (-1*velocity);
@@ -122,7 +136,10 @@ void __interrupt_vec(PORT2_VECTOR) Port_2()
   }
   else if (P2IFG & TSW4){
     P2IFG &= ~TSW4;
-    buzzer_set_period(0);
+    if (height < 90)
+      height += 30;
+    else
+      height = 30;
   }
 }
 
@@ -139,7 +156,7 @@ void main(){
   enableWDTInterrupts();
   or_sr(0x8);             //enable GIE
 
-  clearScreen(BLACK);
+  clearScreen(BG_COLOR);
   for (int i = 0; i < screenWidth; i++){
     drawPixel(i, lineRow, LINE_COLOR);
   }
@@ -155,6 +172,12 @@ void main(){
          drawPixel(i, lineRow, LINE_COLOR);   
       }
     }
+    /*  if(correct)
+      playSound();               In case he wants sound to only be done by main
+    else
+      incorrectPress();
+    */              
+    
     P1OUT &= ~LED;
     or_sr(0x10);   //turning off cpu
     P1OUT |= LED;
