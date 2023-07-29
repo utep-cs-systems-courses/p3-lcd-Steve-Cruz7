@@ -72,6 +72,30 @@ void drawChar5x7(u_char rcol, u_char rrow, char c,
   }
 }
 
+/* 11x16 font - this function draws background pixels
+   Adapted from RobG's EduKit
+*/
+void drawChar11x16(u_char rcol, u_char rrow, char c,                                
+     u_int fgColorBGR, u_int bgColorBGR)                                          
+{                                                                                 
+  u_char col = 0;                                                                 
+  u_char row = 0;                                                                 
+  u_char bit = 0x01;                                                              
+  u_char oc = c - 0x20;                                                           
+                                                                                  
+  lcd_setArea(rcol, rrow, rcol + 10, rrow + 16); /* relative to requested col/row */
+  while (row < 17) {                                                               
+    while (col < 11) {                                                             
+      u_int colorBGR = (font_11x16[oc][col] & bit) ? fgColorBGR : bgColorBGR;       
+      lcd_writeColor(colorBGR);                                                   
+      col++;                                                                      
+    }                                                                             
+    col = 0;                                                                      
+    bit <<= 1;                                                                    
+    row++;                                                                        
+  }                                                                               
+}                                                                                 
+
 /** Draw string at col,row
  *  Type:
  *  FONT_SM - small (5x8,) FONT_MD - medium (8x12,) FONT_LG - large (11x16)
@@ -115,3 +139,30 @@ void drawRectOutline(u_char colMin, u_char rowMin, u_char width, u_char height,
   fillRectangle(colMin + width, rowMin, 1, height, colorBGR);
 }
 
+void write5x7(u_char c, u_char columnStart, u_char rowStart, u_int FGcolor, u_int BGcolor)
+{
+  c -= 0x20;
+  for (char row = 0; row < 5; row++){
+    u_int rowBits = font_5x7[c][row];
+    for(char col = 0; col < 7; col++){
+      u_int colMask = 1 << (6-col);
+      u_int color = (rowBits & colMask) ? FGcolor : BGcolor;
+      drawPixel(col + columnStart, row + rowStart, color);
+    }
+  }
+  
+}
+
+void write11x16(u_char c, u_char columnStart, u_char rowStart, u_int FGcolor, u_int BGcolor)
+{                                                                                         
+  c -= 0x20;                                                                              
+  for (char row = 0; row < 11; row++){                                                     
+    u_int rowBits = font_11x16[c][row];                                                     
+    for(char col = 0; col < 16; col++){                                                    
+      u_int colMask = 1 << (15-col);                                                       
+      u_int color = (rowBits & colMask) ? FGcolor : BGcolor;                              
+      drawPixel(col + columnStart, row + rowStart, color);                                
+    }                                                                                     
+  }                                                                                       
+                                                                                          
+}                                                                                         

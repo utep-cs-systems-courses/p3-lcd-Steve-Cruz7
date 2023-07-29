@@ -24,7 +24,7 @@ short velocity = 30;
 short height = 30;
 short lineRow = 100;
 
-short controlCol = screenWidth/2;
+short controlCol = (screenWidth/2) - 5;
 short controlRow = 0;
 
 short interrupts = 1;
@@ -33,7 +33,7 @@ short redrawLine = 0;
 short redrawScreen = 0;
 
 //Button pressing related states
-short correct = 0;
+char correct = 0;
 short playTheme = 0;
 
 short BLOCK_COLOR = COLOR_BLUE;
@@ -44,16 +44,25 @@ void draw(){
     redrawScreen = 0;
     clearScreen(BG_COLOR);
     redrawLine = 1;
-    fillRectangle(controlCol, controlRow + currentRow, 10, height, BLOCK_COLOR);
+    fillRectangle(controlCol, controlRow + pastRow, 10, height, BG_COLOR);
     fillRectangle(controlCol, controlRow + currentRow, 10, height, BLOCK_COLOR);
     pastRow = currentRow;
+
+    drawRectOutline(0, 0, 5, 50, COLOR_GREEN);
+    fillRectangle(0, 0, 5, 50, BG_COLOR);
+    fillRectangle(0, 0, 5, 10*correct, COLOR_GREEN);
     
   }
   else{
     fillRectangle(controlCol , controlRow + pastRow, 10, height, BG_COLOR);
     fillRectangle(controlCol, controlRow + currentRow, 10, height, BLOCK_COLOR);
     pastRow = currentRow;
-  }
+
+    drawRectOutline(0, 0, 5, 50, COLOR_GREEN);
+    fillRectangle(0, 0, 5, 50, BG_COLOR);
+    fillRectangle(0, 0, 5, 10*correct, COLOR_GREEN);
+    }
+  
   or_sr(8);    //Unmasking interrupts
 }
 
@@ -73,6 +82,7 @@ void playSound(){
 
 void incorrectPress(){
   buzzer_set_period(2000);
+  correct --;;
 }    
 
 void switch_init(){
@@ -83,21 +93,19 @@ void switch_init(){
 }
 
  //Translate one state machine to assembly
- //Add visible counter of correctness 0-5
- //Add decrement of correct on incorrect inputs and no input
  //Add win screen and FF victory fanfare
 void wdt_c_handler()
 {
   if((interrupts++) == 250){    //every second do this    
     interrupts = 1;                                       
-    currentRow+=velocity;                                      
-    //draw();                                             
+    currentRow+=velocity;                                                                    
     drawBlock = 1;                                                          
   }
 
   if (currentRow > lineRow){
     currentRow = (-1*velocity);
     redrawScreen = 1;
+    correct --;;
   }
 }
 
@@ -162,6 +170,10 @@ void main(){
   }
   
   while (1){
+    if (correct > 5)
+      correct = 5;
+    if (correct < 0)
+      correct = 0;;
     if (drawBlock){
       drawBlock = 0;
       draw(); 
