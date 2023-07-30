@@ -10,6 +10,7 @@ void play4Fsharp();
 void play4G();
 void play4A();
 void play4Csharp();
+void play5C();
 void playState(short playTheme, short interrupts);
 
 #endif // included

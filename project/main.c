@@ -39,32 +39,39 @@ short playTheme = 0;
 short BLOCK_COLOR = COLOR_BLUE;
 
 void draw(){
-  and_sr(~8);    //Masking interrupts
-  if (redrawScreen){
-    redrawScreen = 0;
-    clearScreen(BG_COLOR);
-    redrawLine = 1;
-    fillRectangle(controlCol, controlRow + pastRow, 10, height, BG_COLOR);
-    fillRectangle(controlCol, controlRow + currentRow, 10, height, BLOCK_COLOR);
-    pastRow = currentRow;
-
-    drawRectOutline(0, 0, 5, 50, COLOR_GREEN);
-    fillRectangle(0, 0, 5, 50, BG_COLOR);
-    fillRectangle(0, 0, 5, 10*correct, COLOR_GREEN);
-    
+  if(correct == 6){
+    clearScreen(WHITE);
+    playTheme = 1;
+    interrupts = 0;
   }
   else{
-    fillRectangle(controlCol , controlRow + pastRow, 10, height, BG_COLOR);
-    fillRectangle(controlCol, controlRow + currentRow, 10, height, BLOCK_COLOR);
-    pastRow = currentRow;
+    and_sr(~8);    //Masking interrupts
+    if (redrawScreen){
+      redrawScreen = 0;
+      clearScreen(BG_COLOR);
+      redrawLine = 1;
+      fillRectangle(controlCol, controlRow + pastRow, 10, height, BG_COLOR);
+      fillRectangle(controlCol, controlRow + currentRow, 10, height, BLOCK_COLOR);
+      pastRow = currentRow;
 
-    drawRectOutline(0, 0, 5, 50, COLOR_GREEN);
-    fillRectangle(0, 0, 5, 50, BG_COLOR);
-    fillRectangle(0, 0, 5, 10*correct, COLOR_GREEN);
+      drawRectOutline(0, 0, 5, 50, COLOR_GREEN);
+      fillRectangle(0, 0, 5, 50, BG_COLOR);
+      fillRectangle(0, 0, 5, 10*correct, COLOR_GREEN);
+    
     }
-  
-  or_sr(8);    //Unmasking interrupts
+    else{
+      fillRectangle(controlCol , controlRow + pastRow, 10, height, BG_COLOR);
+      fillRectangle(controlCol, controlRow + currentRow, 10, height, BLOCK_COLOR);
+      pastRow = currentRow;
+
+      drawRectOutline(0, 0, 5, 50, COLOR_GREEN);
+      fillRectangle(0, 0, 5, 50, BG_COLOR);
+      fillRectangle(0, 0, 5, 10*correct, COLOR_GREEN);
+    }
+    or_sr(8);  //Unmasking interrupts
+  }
 }
+  
 
 void playSound(){
   if(correct == 1)
@@ -82,7 +89,7 @@ void playSound(){
 
 void incorrectPress(){
   buzzer_set_period(2000);
-  correct --;;
+  correct --;
 }    
 
 void switch_init(){
@@ -91,21 +98,87 @@ void switch_init(){
   P2OUT |= SWITCHES;
   P2DIR &= ~SWITCHES;
 }
-
- //Translate one state machine to assembly
+//Translate one state machine to assembly
  //Add win screen and FF victory fanfare
 void wdt_c_handler()
 {
-  if((interrupts++) == 250){    //every second do this    
-    interrupts = 1;                                       
+  interrupts++;
+  if(interrupts == 250 || interrupts == 500 || interrupts == 750){    //every second do this
     currentRow+=velocity;                                                                    
     drawBlock = 1;                                                          
   }
+  if(interrupts == 750)
+    interrupts = 1;
 
   if (currentRow > lineRow){
     currentRow = (-1*velocity);
     redrawScreen = 1;
-    correct --;;
+    if(correct > 0)
+      correct --;
+  }
+
+  if(playTheme){
+    switch (interrupts){
+    case 41:
+      play5C();
+      break;
+    case 62:
+      buzzer_set_period(0);
+      break;
+    case 82:
+      play5C();
+      break;
+    case 103:
+      buzzer_set_period(0);
+      break;
+    case 123:
+      play5C();
+      break;
+    case 144:
+      buzzer_set_period(0);
+      break;
+    case 165:
+      play5C();
+      break;
+    case 210:
+      buzzer_set_period(0);
+      break;
+    case 230:
+      play4G();
+      break;
+    case 280:
+      buzzer_set_period(0);
+      break;
+    case 300:
+      play4A();
+      break;
+    case 350:
+      buzzer_set_period(0);
+      break;
+    case 370:
+      play5C();
+      break;
+    case 400:
+      buzzer_set_period(0);
+      break;
+    case 420:
+      play4A();
+      break;
+    case 450:
+      buzzer_set_period(0);
+      break;
+    case 460:
+      play5C();
+      break;
+    case 500:
+      buzzer_set_period(0);
+      correct = 0;
+      playTheme = 0;
+      break;
+      
+      
+    }
+    
   }
 }
 
@@ -170,10 +243,8 @@ void main(){
   }
   
   while (1){
-    if (correct > 5)
-      correct = 5;
     if (correct < 0)
-      correct = 0;;
+      correct = 0;
     if (drawBlock){
       drawBlock = 0;
       draw(); 

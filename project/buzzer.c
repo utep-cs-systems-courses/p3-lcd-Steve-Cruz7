@@ -48,6 +48,11 @@ void play4Csharp(){
   buzzer_set_period(7353);
 }
 
+void play5C(){
+  buzzer_set_period(3822);
+}
+
+
 void playState(short playTheme, short interrupts){             
   if(playTheme == 1){       
     if(interrupts == 43)   
