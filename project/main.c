@@ -6,7 +6,7 @@
 
 #define LED BIT6
 
-#define TSW1 BIT0
+#define TSW1 BIT0                            //Only for top switches so LCD won't be affected
 #define TSW2 BIT1
 #define TSW3 BIT2
 #define TSW4 BIT3
@@ -33,13 +33,14 @@ short redrawLine = 0;
 short redrawScreen = 0;
 
 //Button pressing related states
-char correct = 0;
+short correct = 0;
 short playTheme = 0;
 
 short BLOCK_COLOR = COLOR_BLUE;
 
-void draw(){
-  if(correct == 6){
+void draw()
+{
+  if (correct == 6){
     clearScreen(WHITE);
     playTheme = 1;
     interrupts = 0;
@@ -72,27 +73,17 @@ void draw(){
   }
 }
   
-
-void playSound(){
-  if(correct == 1)
-    play4Csharp();
-  if(correct == 2)
-    play4D();
-  if(correct == 3)
-    play4Fsharp();
-  if(correct == 4)
-    play4G();
-  if(correct == 5){
-    play4A();
-  }
-}
-
-void incorrectPress(){
+void incorrectPress()
+{
   buzzer_set_period(2000);
-  correct --;
+  if(correct > 0)
+    correct --;
+    
+  
 }    
 
-void switch_init(){
+void switch_init()
+{
   P2REN |= SWITCHES;
   P2IE |= SWITCHES;
   P2OUT |= SWITCHES;
@@ -103,21 +94,21 @@ void switch_init(){
 void wdt_c_handler()
 {
   interrupts++;
-  if(interrupts == 250 || interrupts == 500 || interrupts == 750){    //every second do this
+  if (interrupts == 250 || interrupts == 500 || interrupts == 750){    //every second do this
     currentRow+=velocity;                                                                    
     drawBlock = 1;                                                          
   }
-  if(interrupts == 750)
+  if (interrupts == 750)
     interrupts = 1;
 
   if (currentRow > lineRow){
     currentRow = (-1*velocity);
     redrawScreen = 1;
-    if(correct > 0)
+    if (correct > 0)
       correct --;
   }
 
-  if(playTheme){
+  if (playTheme){
     switch (interrupts){
     case 41:
       play5C();
@@ -185,11 +176,11 @@ void wdt_c_handler()
 
 void __interrupt_vec(PORT2_VECTOR) Port_2()
 {
-  if (P2IFG & TSW1){
-    P2IFG &= ~TSW1;               //If they press it when its in the region, correct+1
+  if (P2IFG & TSW1){                      //If they press it when its in the region, correct+1
+    P2IFG &= ~TSW1;               
     if ((controlRow+currentRow) <= lineRow && lineRow <= ((controlRow + currentRow) + height )){
       correct++;
-      currentRow = (-1*velocity);   //reset the shape's position
+      currentRow = (-1*velocity);         //reset the shape's position
       redrawLine = 1;
       playSound();
     }
@@ -199,23 +190,23 @@ void __interrupt_vec(PORT2_VECTOR) Port_2()
       incorrectPress();
 }
   }
-  else if (P2IFG & TSW2){  //increment speed
+  else if (P2IFG & TSW2){                //Increment speed
     P2IFG &= ~TSW2;
     if (velocity < 50)
       velocity += 20;
     else
       velocity = 10;
   }
-  else if (P2IFG & TSW3){           //temporary off button
+  else if (P2IFG & TSW3){                //Change color
     P2IFG &= ~TSW3;
-    if (BLOCK_COLOR < COLOR_PURPLE)
+    if (BLOCK_COLOR < COLOR_PURPLE)   
       BLOCK_COLOR = COLOR_PURPLE;
     else if (BLOCK_COLOR < COLOR_BLUE)
       BLOCK_COLOR = COLOR_BLUE;
     else
       BLOCK_COLOR = COLOR_RED;
   }
-  else if (P2IFG & TSW4){
+  else if (P2IFG & TSW4){                 //Increment size
     P2IFG &= ~TSW4;
     if (height < 90)
       height += 30;
@@ -225,7 +216,8 @@ void __interrupt_vec(PORT2_VECTOR) Port_2()
 }
 
 
-void main(){
+void main()
+{
   P1DIR |= LED;
   P1OUT |= LED;
   
